@@ -14,6 +14,7 @@ from oauth2client.file import Storage
 import email
 import base64
 from email.mime.text import MIMEText
+from email.header import Header
 import mimetypes
 
 try:
@@ -58,7 +59,7 @@ def get_credentials():
     return credentials
 
 def create_message(sender, to, subject, message_text): #Function used to create the a message with some kind of text using MIME structure.
-    message = MIMEText(message_text)  # Creates the message
+    message = MIMEText(message_text, 'html')  # Creates the message
     message['to'] = to
     message['from'] = sender #passing the message information received as argument of the function
     message['subject'] = subject
@@ -84,7 +85,7 @@ def send_message(service, user_id, message): # Function used to send a single ex
     except errors.HttpError, error:
         print('An error occurred: %s' % error)
 
-def ListMessagesMatchingQuery(service, user_id, query='{subject:currículo subject:cv subject:curriculum}'):  #This function is used to return a list of all messages where the subject is something about curriculum
+def ListMessagesMatchingQuery(service, user_id, query='{subject:currículo subject:cv subject:curriculum} newer_than:12m in:inbox'):  # This function is used to return a list of all messages where the subject is something about curriculum
     try:
         response = service.users().messages().list(userId=user_id,q=query).execute() # The actual query
         messages = [] # Create the array wich will store all the messages.
@@ -101,12 +102,12 @@ def ListMessagesMatchingQuery(service, user_id, query='{subject:currículo subje
 
 def RedirectToLever(service, msg_id): #This function is used to redirect the message that has an attachment to the Lever e-mail.
     message = GetMimeMessage(service, 'me', msg_id) # Get the MIME message of a message by it's ID.
-    message.replace_header('To', 'felipe.guimaraes@redealumni.com') # Change the destination e-mail to the Lever e-mail.
+    message.replace_header('To', 'applicant@hire.lever.co') # Change the destination e-mail to the Lever e-mail.
     msg_raw = {'raw': base64.urlsafe_b64encode(message.as_string())} # Encode the new message.
-    send_message(service, 'me', msg_raw) #Send the message calling the send_message function.
+    #send_message(service, 'me', msg_raw) #Send the message calling the send_message function.
 
 def GetMimeMessage(service, user_id, msg_id): #This function returns the MIME message from a message id.
- 
+
     try:
         message = service.users().messages().get(userId=user_id, id=msg_id,
                                              format='raw').execute() #Search the message in the db from it's ID.
@@ -117,6 +118,25 @@ def GetMimeMessage(service, user_id, msg_id): #This function returns the MIME me
         return mime_msg
     except errors.HttpError, error:
         print ('An error occurred: %s' % error)
+
+def write_message():
+    return ('Hey, tudo joia?<p></p><p></p>' 
+        + 'Nós recebemos tantos currículos (mais de 5 mil!) no último'
+        + ' semestre que foi preciso dar um up no nosso Banco de'
+        + ' Talentos em 2017. Agora usamos uma plataforma muito'
+        + ' fácil (e linda!) que diminui o risco do seu currículo'
+        + ' ficar perdido no meio da multidão \o/ Lá você pode'
+        + ' ver as vagas que estão abertas e se candidatar à '
+        + 'que mais combina com você!<p></p><p></p>'
+        + 'Esse é o link da nossa página de vagas: que.bo/vagas <p></p><p></p>' 
+        + 'Ah, e se você já estiver trabalhando e quiser'
+        + ' compartilhar o link com seus amigos, super pode'
+        + ' (se não estiver trabalhando também pode compartilhar '
+        + 'haha)! Vamos continuar crescendo e vamos precisar '
+        + 'de muuuita gente pra acelerar o processo ^^<p></p><p></p>'       
+        + 'Muito obrigada!<p></p><p></p>'
+        + 'Um abraço,<p></p><p></p>'
+        + 'Quero Educação')
 
 def main(): # The main function to me executed.
     credentials = get_credentials()
@@ -131,16 +151,19 @@ def main(): # The main function to me executed.
     else:
       print('Labels:')
       for label in labels:
-        print(label['name'])   
-    msg1 = create_message('me','"Felipe Guimarães" <guima.felipec@gmail.com>','Teste','Testando 1 2 3...')
+        print(label['name']) '''
+
+    msg_to_be_send = write_message()
+    sbj_to_be_send = Header('Novo caminho para trabalhar na Quero Educação ❤','utf-8')
+    #msg1 = create_message('me','roger@redealumni.com', sbj_to_be_send, msg_to_be_send)
     #print(msg1['payload']['headers'])
-    print(msg1)
-    #send_message(service, 'me', msg1)'''
+    #print(msg1)
+    #send_message(service, 'me', msg1)
 
     messages = ListMessagesMatchingQuery(service,'me',) # Get all messages about CV, as put in the declaration of the function above.
     senders = [] # Creates an array of the senders of messages about curriculum. We will send the text email to all e-mails in this array.
     fowarded = [] # Creates an array of emails that will be fowarded to the Lever email (messages with attachments).
-    #print(len(messages))
+
     for msg in messages:
         msg_id = msg['id'] # Get the ID of the message.
         msg_txt = service.users().messages().get(userId='me', id=msg_id).execute() # Get the message as an structure. Better explained in the GMail API website: https://developers.google.com/gmail/api/v1/reference/users/messages
@@ -163,25 +186,29 @@ def main(): # The main function to me executed.
                                 fowarded.append(sender) # Put this sender in the fowarded array.
                                 if senders.count(sender) != 0 : # Remove the sender from the senders array.
                                     senders.remove(sender)
-                                print('Subject = %s' % subject) # Prints to check if everything is ok.
-                                print('Sender = %s' % sender)
-                                print('Foi fowardeado')
+                                # print('Subject = %s' % subject) # Prints to check if everything is ok.
+                                # print('Sender = %s' % sender)
+                                # print('Foi fowardeado')
                                 break
                         if senders.count(sender) == 0 and fowarded.count(sender) == 0: # If the message is not fowarded yet (the if above goes false), the message is not fowarded and isn't in the sender array.
                             senders.append(sender) # Put the e-mail in the senders array.
-                            print('Subject = %s' % subject)
-                            print('Sender = %s' % sender)
-                            print('Foi sendado')
+                            # print('Subject = %s' % subject)
+                            # print('Sender = %s' % sender)
+                            # print('Foi sendado')
                     break
                 #else:
                     #print(msg_txt['payload']['headers'][num]['name'].lower())
             except:
-                print('Something got wrong')
+                # print('Something got wrong')
                 break
-    for person in senders: #Finally, we iterate in the senders array to send the message to all the senders e-mails who didn't get fowarded to Lever.
-        msg1 = create_message('me', person,'Spam Test','Esse eh o meu primeiro spam!!!!')
-       # send_message(service, 'me', msg1)
+    #for person in senders: #Finally, we iterate in the senders array to send the message to all the senders e-mails who didn't get fowarded to Lever.
+        #msg1 = create_message('me', person, sbj_to_be_send, msg_to_be_send)
+        #send_message(service, 'me', msg1)
         #print("Msg send to %s" % person)
+
+    print(len(senders))
+    print(len(fowarded))
+
 
 if __name__ == '__main__':
     main()
