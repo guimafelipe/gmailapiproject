@@ -163,6 +163,7 @@ def main(): # The main function to me executed.
     messages = ListMessagesMatchingQuery(service,'me',) # Get all messages about CV, as put in the declaration of the function above.
     senders = [] # Creates an array of the senders of messages about curriculum. We will send the text email to all e-mails in this array.
     fowarded = [] # Creates an array of emails that will be fowarded to the Lever email (messages with attachments).
+    msgs_ids = [] # Array of messages ID's to be fowarded after de code runs.
 
     for msg in messages:
         msg_id = msg['id'] # Get the ID of the message.
@@ -182,19 +183,13 @@ def main(): # The main function to me executed.
                     if not fowarded.count(sender): # If we fowarded a message from this sender, there is nothing more to do with him/her.
                         for part in msg_txt['payload']['parts']: 
                             if part['filename']: # Check if there is an attachment in the message.
-                                RedirectToLever(service, msg_id) # Call redirect to Lever function for this message.
+                                msgs_ids.append(msg_id) # Put the message in the array to be fowarded after
                                 fowarded.append(sender) # Put this sender in the fowarded array.
                                 if senders.count(sender) != 0 : # Remove the sender from the senders array.
                                     senders.remove(sender)
-                                # print('Subject = %s' % subject) # Prints to check if everything is ok.
-                                # print('Sender = %s' % sender)
-                                # print('Foi fowardeado')
                                 break
                         if senders.count(sender) == 0 and fowarded.count(sender) == 0: # If the message is not fowarded yet (the if above goes false), the message is not fowarded and isn't in the sender array.
                             senders.append(sender) # Put the e-mail in the senders array.
-                            # print('Subject = %s' % subject)
-                            # print('Sender = %s' % sender)
-                            # print('Foi sendado')
                     break
                 #else:
                     #print(msg_txt['payload']['headers'][num]['name'].lower())
@@ -205,6 +200,8 @@ def main(): # The main function to me executed.
         #msg1 = create_message('me', person, sbj_to_be_send, msg_to_be_send)
         #send_message(service, 'me', msg1)
         #print("Msg send to %s" % person)
+    #for msgid in msgs_ids: #Iterate in msgs_ids to foward all the messages to Lever email
+        #RedirectToLever(service, msgid) # Call redirect to Lever function for this message
 
     print(len(senders))
     print(len(fowarded))
