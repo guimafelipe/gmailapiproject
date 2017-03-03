@@ -24,3 +24,9 @@ Tendo movido o json para o mesmo diretório em que está o código em python, ba
 > python quickstart.py
 
 E basta conceder as permissões necessárias e o programa poderá ser executado.
+
+## Alguns bizus
+
+Link explicando como usar a query do gmail:
+
+> https://support.google.com/mail/answer/7190?hl=en
